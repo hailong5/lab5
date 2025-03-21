@@ -304,9 +304,9 @@ drawMap:
     sw      a1, 4(sp)
     sw      a2, 8(sp)
 
-    lw      s0, 0(sp)       # map buffer
-    lw      s1, 4(sp)       # start cell index
-    lw      s2, 8(sp)       # goal cell index
+    lw      s0, 0(sp)       # s0 = map buffer
+    lw      s1, 4(sp)       # s1 = start cell index
+    lw      s2, 8(sp)       # s2 = goal cell index
 
     la      t0, ROWS
     lw      t1, 0(t0)       # t1 = ROWS
@@ -321,38 +321,40 @@ drawMap_loop:
     rem     t6, t4, t2      # column = index % COLS
     div     t5, t4, t2      # row = index / COLS
 
-    add     t0, s0, t4      # address = map + index
-    lbu     a7, 0(t0)       # load byte (unsigned)
+    slli    t0, t4, 2       # address = map + index * 4
+    add     t0, s0, t0
+    lw      a7, 0(t0)       # a7 = cell value
 
+    # Set color based on priority
     beq     t4, s1, dm_set_red
     beq     t4, s2, dm_set_yellow
-    li      a5, 1
-    beq     a7, a5, dm_set_blue
+    li      t0, 1
+    beq     a7, t0, dm_set_blue
 
-    la      a4, GREEN
-    lw      a4, 0(a4)
+    la      t0, GREEN
+    lw      a4, 0(t0)       # a4 = GREEN
     j       dm_draw
 
 dm_set_red:
-    la      a4, RED
-    lw      a4, 0(a4)
+    la      t0, RED
+    lw      a4, 0(t0)
     j       dm_draw
 
 dm_set_yellow:
-    la      a4, YELLOW
-    lw      a4, 0(a4)
+    la      t0, YELLOW
+    lw      a4, 0(t0)
     j       dm_draw
 
 dm_set_blue:
-    la      a4, BLUE
-    lw      a4, 0(a4)
+    la      t0, BLUE
+    lw      a4, 0(t0)
 
 dm_draw:
     mv      a0, t5          # row
     mv      a1, t6          # column
-    li      a2, 1
-    li      a3, 1
-    li      a5, 0
+    li      a2, 1           # width
+    li      a3, 1           # height
+    li      a5, 0           # string: 0 = use default full block
     jal     ra, GLIR_PrintRect
 
     addi    t4, t4, 1
