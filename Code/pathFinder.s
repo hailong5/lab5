@@ -303,7 +303,8 @@ end_buildMap:
 #     - Otherwise, GREEN
 #------------------------------------------------------------------------------
 drawMap:
-    addi    sp, sp, -12
+    addi    sp, sp, -16     # Allocate stack space
+    sw      ra, 12(sp)      # Save return address
     sw      a0, 0(sp)       # Save map buffer pointer
     sw      a1, 4(sp)       # Save start cell
     sw      a2, 8(sp)       # Save goal cell
@@ -322,9 +323,9 @@ drawMap:
 drawMap_loop:
     bge     t4, t3, drawMap_done  # If t4 >= total cells, exit loop
 
-    # Calculate row and column
-    div     t5, t4, t2      # t5 = row (cell index / COLS)
+    # Calculate row and column correctly
     rem     t6, t4, t2      # t6 = column (cell index % COLS)
+    div     t5, t4, t2      # t5 = row (cell index / COLS)
 
     # Load cell value from map buffer
     slli    t0, t4, 2       # t0 = cell index * 4 (word offset)
@@ -366,8 +367,10 @@ dm_draw:
     j       drawMap_loop
 
 drawMap_done:
-    addi    sp, sp, 12       # Restore stack pointer
+    lw      ra, 12(sp)      # Restore return address
+    addi    sp, sp, 16      # Restore stack pointer
     ret
+
 #------------------------------------------------------------------------------
 # isWater:
 #
