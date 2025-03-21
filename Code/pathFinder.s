@@ -316,11 +316,11 @@ drawMap:
     lw      t1, 0(t0)       # t1 = number of rows
     la      t0, COLS
     lw      t2, 0(t0)       # t2 = number of columns
-    mul     t3, t1, t2      # t3 = total cells
+    mul     t3, t1, t2      # t3 = total cells (ROWS * COLS)
 
-    li      t4, 0           # t4 = current cell index
+    li      t4, 0           # t4 = current cell index (start from 0)
 drawMap_loop:
-    bge     t4, t3, drawMap_done  # If all cells processed, exit
+    bge     t4, t3, drawMap_done  # If t4 >= total cells, exit loop
 
     # Calculate row and column
     div     t5, t4, t2      # t5 = row (cell index / COLS)
@@ -368,7 +368,6 @@ dm_draw:
 drawMap_done:
     addi    sp, sp, 12       # Restore stack pointer
     ret
-
 #------------------------------------------------------------------------------
 # isWater:
 #
