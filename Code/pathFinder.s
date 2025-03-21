@@ -350,10 +350,10 @@ dm_set_blue:
     lw      a4, 0(t0)
 
 dm_draw:
-    mv      a0, t5          # row
-    mv      a1, t6          # column
-    li      a2, 1           # width
-    li      a3, 1           # height
+    mv      a0, t5          # row position
+    mv      a1, t6          # column position
+    li      a2, 1           # height
+    li      a3, 1           # width
     li      a5, 0           # string: 0 = use default full block
     jal     ra, GLIR_PrintRect
 
@@ -364,8 +364,6 @@ drawMap_done:
     lw      ra, 12(sp)
     addi    sp, sp, 16
     ret
-
-
 #------------------------------------------------------------------------------
 # isWater:
 #
