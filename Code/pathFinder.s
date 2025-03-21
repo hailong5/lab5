@@ -297,72 +297,101 @@ end_buildMap:
 #     - If map_buffer[cell] == 1, BLUE
 #     - Otherwise, GREEN
 #------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
+# drawMap:
+#
+# Args:
+#   a0: pointer to the map buffer
+#   a1: start cell number
+#   a2: goal cell number
+#
+# Effect:
+#   Draws each cell using GLIR_PrintRect:
+#     - If cell index == start, RED
+#     - If cell index == goal, YELLOW
+#     - If isWater(cell) returns 1, BLUE
+#     - Otherwise, GREEN
+#------------------------------------------------------------------------------
 drawMap:
+    # Save registers on the stack
     addi    sp, sp, -16
-    sw      ra, 12(sp)
-    sw      a0, 0(sp)
-    sw      a1, 4(sp)
-    sw      a2, 8(sp)
+    sw      ra, 0(sp)        # Save return address
+    sw      s0, 4(sp)        # Save s0 (map buffer pointer)
+    sw      s1, 8(sp)        # Save s1 (start cell)
+    sw      s2, 12(sp)       # Save s2 (goal cell)
 
-    lw      s0, 0(sp)       # s0 = map buffer
-    lw      s1, 4(sp)       # s1 = start cell index
-    lw      s2, 8(sp)       # s2 = goal cell index
+    # Load arguments into saved registers
+    mv      s0, a0           # s0 = map buffer pointer
+    mv      s1, a1           # s1 = start cell
+    mv      s2, a2           # s2 = goal cell
 
+    # Load ROWS and COLS
     la      t0, ROWS
-    lw      t1, 0(t0)       # t1 = ROWS
+    lw      t1, 0(t0)        # t1 = number of rows
     la      t0, COLS
-    lw      t2, 0(t0)       # t2 = COLS
-    mul     t3, t1, t2      # t3 = total cells
+    lw      t2, 0(t0)        # t2 = number of columns
+    mul     t3, t1, t2       # t3 = total cells (ROWS * COLS)
 
-    li      t4, 0           # t4 = current index
+    # Initialize loop counter (cell index)
+    li      t4, 0            # t4 = current cell index
+
 drawMap_loop:
-    bge     t4, t3, drawMap_done
+    bge     t4, t3, drawMap_done  # If t4 >= total cells, exit loop
 
-    rem     t6, t4, t2      # column = index % COLS
-    div     t5, t4, t2      # row = index / COLS
+    # Calculate row and column for the current cell
+    div     t5, t4, t2       # t5 = row (cell index / COLS)
+    rem     t6, t4, t2       # t6 = column (cell index % COLS)
 
-    slli    t0, t4, 2       # address = map + index * 4
-    add     t0, s0, t0
-    lw      a7, 0(t0)       # a7 = cell value
+    # Determine the color of the cell
+    beq     t4, s1, dm_set_red     # If cell == start, set RED
+    beq     t4, s2, dm_set_yellow  # If cell == goal, set YELLOW
 
-    # Set color based on priority
-    beq     t4, s1, dm_set_red
-    beq     t4, s2, dm_set_yellow
-    li      t0, 1
-    beq     a7, t0, dm_set_blue
-
-    la      t0, GREEN
-    lw      a4, 0(t0)       # a4 = GREEN
-    j       dm_draw
+    # Check if the cell is water using isWater
+    mv      a0, s0           # a0 = map buffer pointer
+    mv      a1, t4           # a1 = cell index
+    jal     ra, isWater      # Call isWater
+    bnez    a0, dm_set_blue  # If isWater returns 1, set BLUE
+    j       dm_set_green     # Otherwise, set GREEN
 
 dm_set_red:
-    la      t0, RED
-    lw      a4, 0(t0)
+    la      a4, RED          # Load RED color code
+    lw      a4, 0(a4)
     j       dm_draw
 
 dm_set_yellow:
-    la      t0, YELLOW
-    lw      a4, 0(t0)
+    la      a4, YELLOW       # Load YELLOW color code
+    lw      a4, 0(a4)
     j       dm_draw
 
 dm_set_blue:
-    la      t0, BLUE
-    lw      a4, 0(t0)
+    la      a4, BLUE         # Load BLUE color code
+    lw      a4, 0(a4)
+    j       dm_draw
+
+dm_set_green:
+    la      a4, GREEN        # Load GREEN color code
+    lw      a4, 0(a4)
 
 dm_draw:
-    mv      a0, t5          # row position
-    mv      a1, t6          # column position
-    li      a2, 1           # height
-    li      a3, 1           # width
-    li      a5, 0           # string: 0 = use default full block
-    jal     ra, GLIR_PrintRect
+    # Call GLIR_PrintRect to draw the cell
+    mv      a0, t5           # row
+    mv      a1, t6           # column
+    li      a2, 1            # width (1 cell)
+    li      a3, 1            # height (1 cell)
+    li      a5, 0            # additional parameter (0 for default character)
+    jal     ra, GLIR_PrintRect  # Draw the cell
 
-    addi    t4, t4, 1
+    # Move to the next cell
+    addi    t4, t4, 1        # Increment cell index
     j       drawMap_loop
 
 drawMap_done:
-    lw      ra, 12(sp)
-    addi    sp, sp, 16
+    # Restore registers and return
+    lw      ra, 0(sp)        # Restore return address
+    lw      s0, 4(sp)        # Restore s0
+    lw      s1, 8(sp)        # Restore s1
+    lw      s2, 12(sp)       # Restore s2
+    addi    sp, sp, 16       # Restore stack pointer
     ret
 #------------------------------------------------------------------------------
 # isWater:
