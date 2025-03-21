@@ -298,41 +298,38 @@ end_buildMap:
 #     - Otherwise, GREEN
 #------------------------------------------------------------------------------
 drawMap:
-    addi    sp, sp, -16     # Allocate stack space
-    sw      ra, 12(sp)      # Save return address
-    sw      a0, 0(sp)       # Save map buffer pointer
-    sw      a1, 4(sp)       # Save start cell
-    sw      a2, 8(sp)       # Save goal cell
+    addi    sp, sp, -16
+    sw      ra, 12(sp)
+    sw      a0, 0(sp)
+    sw      a1, 4(sp)
+    sw      a2, 8(sp)
 
-    lw      s0, 0(sp)       # s0 = map buffer pointer
-    lw      s1, 4(sp)       # s1 = start cell
-    lw      s2, 8(sp)       # s2 = goal cell
+    lw      s0, 0(sp)       # map buffer
+    lw      s1, 4(sp)       # start cell index
+    lw      s2, 8(sp)       # goal cell index
 
     la      t0, ROWS
-    lw      t1, 0(t0)       # t1 = number of rows
+    lw      t1, 0(t0)       # t1 = ROWS
     la      t0, COLS
-    lw      t2, 0(t0)       # t2 = number of columns
-    mul     t3, t1, t2      # t3 = total cells (ROWS * COLS)
+    lw      t2, 0(t0)       # t2 = COLS
+    mul     t3, t1, t2      # t3 = total cells
 
-    li      t4, 0           # t4 = current cell index (start from 0)
+    li      t4, 0           # t4 = current index
 drawMap_loop:
-    bge     t4, t3, drawMap_done  # If t4 >= total cells, exit loop
+    bge     t4, t3, drawMap_done
 
-    # Calculate row and column correctly
-    rem     t6, t4, t2      # t6 = column (cell index % COLS)
-    div     t5, t4, t2      # t5 = row (cell index / COLS)
+    rem     t6, t4, t2      # column = index % COLS
+    div     t5, t4, t2      # row = index / COLS
 
-    # Load cell value from map buffer
-    slli    t0, t4, 2       # t0 = cell index * 4 (word offset)
-    add     t0, s0, t0      # t0 = address of cell in map buffer
-    lw      a7, 0(t0)       # a7 = cell value (0 = grass, 1 = water)
+    add     t0, s0, t4      # address = map + index
+    lbu     a7, 0(t0)       # load byte (unsigned)
 
-    # Determine color based on cell value
-    beq     t4, s1, dm_set_red     # If cell == start, set RED
-    beq     t4, s2, dm_set_yellow  # If cell == goal, set YELLOW
+    beq     t4, s1, dm_set_red
+    beq     t4, s2, dm_set_yellow
     li      a5, 1
-    beq     a7, a5, dm_set_blue    # If cell == water, set BLUE
-    la      a4, GREEN              # Otherwise, set GREEN
+    beq     a7, a5, dm_set_blue
+
+    la      a4, GREEN
     lw      a4, 0(a4)
     j       dm_draw
 
@@ -353,18 +350,19 @@ dm_set_blue:
 dm_draw:
     mv      a0, t5          # row
     mv      a1, t6          # column
-    li      a2, 1           # width
-    li      a3, 1           # height
-    li      a5, 0           # additional parameter
-    jal     ra, GLIR_PrintRect  # Draw the cell
+    li      a2, 1
+    li      a3, 1
+    li      a5, 0
+    jal     ra, GLIR_PrintRect
 
-    addi    t4, t4, 1       # Move to next cell
+    addi    t4, t4, 1
     j       drawMap_loop
 
 drawMap_done:
-    lw      ra, 12(sp)      # Restore return address
-    addi    sp, sp, 16      # Restore stack pointer
+    lw      ra, 12(sp)
+    addi    sp, sp, 16
     ret
+
 
 #------------------------------------------------------------------------------
 # isWater:
