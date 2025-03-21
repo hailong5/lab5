@@ -32,6 +32,9 @@ pathFinder:
     sw      a0, 0(sp)
     sw      a1, 4(sp)
 
+    # Call GLIR_Start to prepare the terminal for the visualizer
+    jal     ra, GLIR_Start
+
     # 1. Build the map
     mv      a0, a5         # pointer to water array
     mv      a1, a6         # length of water array
@@ -63,6 +66,9 @@ pathFinder:
     jal     ra, drawSoln
 
 pf_end:
+    # Call GLIR_End to revert the terminal back to its default state
+    jal     ra, GLIR_End
+
     ret
 
 #------------------------------------------------------------------------------
