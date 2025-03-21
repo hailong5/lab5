@@ -312,6 +312,21 @@ end_buildMap:
 #     - If isWater(cell) returns 1, BLUE
 #     - Otherwise, GREEN
 #------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
+# drawMap:
+#
+# Args:
+#   a0: pointer to the map buffer
+#   a1: start cell number
+#   a2: goal cell number
+#
+# Effect:
+#   Draws each cell using GLIR_PrintRect:
+#     - If cell index == start, RED
+#     - If cell index == goal, YELLOW
+#     - If map_buffer[cell] == 1, BLUE
+#     - Otherwise, GREEN
+#------------------------------------------------------------------------------
 drawMap:
     # Save registers on the stack
     addi    sp, sp, -16
@@ -320,7 +335,7 @@ drawMap:
     sw      s1, 8(sp)        # Save s1 (start cell)
     sw      s2, 12(sp)       # Save s2 (goal cell)
 
-    # Load arguments into saved registers
+    # Move input parameters into saved registers
     mv      s0, a0           # s0 = map buffer pointer
     mv      s1, a1           # s1 = start cell
     mv      s2, a2           # s2 = goal cell
@@ -332,11 +347,14 @@ drawMap:
     lw      t2, 0(t0)        # t2 = number of columns
     mul     t3, t1, t2       # t3 = total cells (ROWS * COLS)
 
+    # Start the GLIR terminal (resize, clear, hide cursor)
+    jal     ra, GLIR_Start
+
     # Initialize loop counter (cell index)
     li      t4, 0            # t4 = current cell index
 
-drawMap_loop:
-    bge     t4, t3, drawMap_done  # If t4 >= total cells, exit loop
+dm_loop:
+    bge     t4, t3, dm_end  # If t4 >= total cells, exit loop
 
     # Calculate row and column for the current cell
     div     t5, t4, t2       # t5 = row (cell index / COLS)
@@ -346,12 +364,13 @@ drawMap_loop:
     beq     t4, s1, dm_set_red     # If cell == start, set RED
     beq     t4, s2, dm_set_yellow  # If cell == goal, set YELLOW
 
-    # Check if the cell is water using isWater
-    mv      a0, s0           # a0 = map buffer pointer
-    mv      a1, t4           # a1 = cell index
-    jal     ra, isWater      # Call isWater
-    bnez    a0, dm_set_blue  # If isWater returns 1, set BLUE
-    j       dm_set_green     # Otherwise, set GREEN
+    # Check if the cell is water
+    slli    t0, t4, 2        # t0 = cell index * 4 (word offset)
+    add     t0, s0, t0       # t0 = address of cell in map buffer
+    lw      a7, 0(t0)        # a7 = cell value (0 = grass, 1 = water)
+    li      a5, 1
+    beq     a7, a5, dm_set_blue    # If cell == water, set BLUE
+    j       dm_set_green           # Otherwise, set GREEN
 
 dm_set_red:
     la      a4, RED          # Load RED color code
@@ -383,9 +402,12 @@ dm_draw:
 
     # Move to the next cell
     addi    t4, t4, 1        # Increment cell index
-    j       drawMap_loop
+    j       dm_loop
 
-drawMap_done:
+dm_end:
+    # End the GLIR terminal session
+    jal     ra, GLIR_End
+
     # Restore registers and return
     lw      ra, 0(sp)        # Restore return address
     lw      s0, 4(sp)        # Restore s0
